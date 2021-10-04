@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <lvgl.h>
@@ -9,6 +7,8 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
+
+#include <font_view.hpp>
 
 #define TAG "main"
 
@@ -34,11 +34,11 @@ static void start_disp()
     ESP_LOGI(TAG, "Initialising ST7789");
     lv_st7789_init();
 
-    lv_color_t* buf1 = heap_caps_malloc(ST7789_DISP_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
-    assert(buf1 != NULL);
+    auto *buf1 = (lv_color_t *)heap_caps_malloc(ST7789_DISP_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    assert(buf1 != nullptr);
 
-    lv_color_t* buf2 = heap_caps_malloc(ST7789_DISP_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
-    assert(buf2 != NULL);
+    auto *buf2 = (lv_color_t *)heap_caps_malloc(ST7789_DISP_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_DMA);
+    assert(buf2 != nullptr);
 
     static lv_disp_draw_buf_t disp_buf;
     lv_disp_draw_buf_init(&disp_buf, buf1, buf2, ST7789_DISP_BUF_SIZE);
@@ -65,7 +65,7 @@ static void start_disp()
 
 static bool my_get_glyph_dsc_cb(const lv_font_t *font, lv_font_glyph_dsc_t *dsc_out, uint32_t unicode_letter, uint32_t unicode_letter_next)
 {
-    if (dsc_out == NULL) return false;
+    if (dsc_out == nullptr) return false;
     float scale = stbtt_ScaleForPixelHeight(&stb_font, font->line_height);
 
     if (stbtt_FindGlyphIndex(&stb_font, (int)unicode_letter) == 0) {
@@ -99,15 +99,15 @@ static const uint8_t *my_get_glyph_bitmap_cb(const lv_font_t *font, uint32_t uni
     static uint8_t ret_buf[1024] = {};
     float scale = stbtt_ScaleForPixelHeight(&stb_font, font->line_height);
     int width = 0, height = 0;
-    uint8_t *buf = stbtt_GetCodepointBitmap(&stb_font, scale, scale, (int)unicode_letter, &width, &height, NULL, NULL);
+    uint8_t *buf = stbtt_GetCodepointBitmap(&stb_font, scale, scale, (int)unicode_letter, &width, &height, nullptr, nullptr);
 
     memcpy(ret_buf, buf, width * height);
-    stbtt_FreeBitmap(buf, NULL);
+    stbtt_FreeBitmap(buf, nullptr);
 
     return ret_buf;
 }
 
-void app_main(void)
+extern "C" void app_main(void)
 {
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     start_disp();
@@ -120,14 +120,12 @@ void app_main(void)
         ESP_LOGE(TAG, "Load font failed");
     }
 
-    lv_font_t lv_wqy = {
-            .user_data = NULL,
-            .get_glyph_dsc = my_get_glyph_dsc_cb,
-            .get_glyph_bitmap = my_get_glyph_bitmap_cb,
-            .line_height = 32,
-            .base_line = 0,
-    };
-
+    lv_font_t lv_wqy = {};
+    lv_wqy.user_data = nullptr;
+    lv_wqy.get_glyph_dsc = my_get_glyph_dsc_cb;
+    lv_wqy.get_glyph_bitmap = my_get_glyph_bitmap_cb;
+    lv_wqy.line_height = 32;
+    lv_wqy.base_line = 0;
 
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
