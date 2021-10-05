@@ -63,69 +63,16 @@ static void start_disp()
     ESP_LOGI(TAG, "Display init done");
 }
 
-static bool my_get_glyph_dsc_cb(const lv_font_t *font, lv_font_glyph_dsc_t *dsc_out, uint32_t unicode_letter, uint32_t unicode_letter_next)
-{
-    if (dsc_out == nullptr) return false;
-    float scale = stbtt_ScaleForPixelHeight(&stb_font, font->line_height);
-
-    if (stbtt_FindGlyphIndex(&stb_font, (int)unicode_letter) == 0) {
-        return false;
-    }
-
-    int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-    stbtt_GetCodepointBitmapBox(&stb_font, (int)unicode_letter, scale, scale, &x0, &y0, &x1, &y1);
-
-    int ascent = 0, descent = 0, line_gap = 0;
-    stbtt_GetFontVMetrics(&stb_font, &ascent, &descent, &line_gap);
-
-    int adv_w = 0;
-    int left_side_bearing = 0;
-    stbtt_GetCodepointHMetrics(&stb_font, (int)unicode_letter, &adv_w, &left_side_bearing);
-    adv_w = (int)(roundf(adv_w * scale));
-    left_side_bearing = (int)(roundf((left_side_bearing * scale)));
-
-    dsc_out->adv_w = adv_w;
-    dsc_out->box_h = (uint16_t)(y1 - y0);
-    dsc_out->box_w = (uint16_t)(x1 - x0);
-    dsc_out->ofs_x = (int16_t)left_side_bearing;
-    dsc_out->ofs_y = (int16_t)(y1 * -1);
-
-    dsc_out->bpp = 8;
-    return true;
-}
-
-static const uint8_t *my_get_glyph_bitmap_cb(const lv_font_t *font, uint32_t unicode_letter)
-{
-    static uint8_t ret_buf[1024] = {};
-    float scale = stbtt_ScaleForPixelHeight(&stb_font, font->line_height);
-    int width = 0, height = 0;
-    uint8_t *buf = stbtt_GetCodepointBitmap(&stb_font, scale, scale, (int)unicode_letter, &width, &height, nullptr, nullptr);
-
-    memcpy(ret_buf, buf, width * height);
-    stbtt_FreeBitmap(buf, nullptr);
-
-    return ret_buf;
-}
-
 extern "C" void app_main(void)
 {
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
     start_disp();
 
-
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
     ESP_LOGI(TAG, "Loading fonts");
-    if (stbtt_InitFont(&stb_font, wqy_font_start, 0) < 1) {
-        ESP_LOGE(TAG, "Load font failed");
-    }
-
-    lv_font_t lv_wqy = {};
-    lv_wqy.user_data = nullptr;
-    lv_wqy.get_glyph_dsc = my_get_glyph_dsc_cb;
-    lv_wqy.get_glyph_bitmap = my_get_glyph_bitmap_cb;
-    lv_wqy.line_height = 32;
-    lv_wqy.base_line = 0;
+    font_view font;
+    ESP_ERROR_CHECK(font.init(wqy_font_start, (wqy_font_end - wqy_font_start), 64));
 
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
 
@@ -133,13 +80,15 @@ extern "C" void app_main(void)
     static lv_style_t style;
     lv_style_init(&style);
     lv_style_set_text_color(&style, lv_color_white());
-    lv_style_set_text_font(&style, &lv_wqy);
+
+    font.decorate_font_style(&style);
     lv_obj_add_style(label, &style, 0);
 
     lv_label_set_text(label, "TrueType字体测试\n"
                              "永远相信美好的事情\n即将发生\n"
-                             "English works too\n"
-                             "Привет товарищ\n");
+//                             "English works too\n"
+//                             "Привет товарищ\n"
+                            );
 
 
     ESP_LOGW(TAG, "Max heap: %u", heap_caps_get_free_size(MALLOC_CAP_8BIT));
