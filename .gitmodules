@@ -1,3 +1,6 @@
 [submodule "components/lvgl"]
 	path = components/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "components/bisheng"]
+	path = components/bisheng
+	url = git@github.com:huming2207/bisheng-fontmgr.git
